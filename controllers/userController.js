@@ -2,7 +2,7 @@ import Suser from "../models/suserModel.js";
 import jwt from "jsonwebtoken";
 
 
-import {sendEmail} from "../utils/sendEmail.js"
+import { sendEmail } from "../utils/sendEmail.js"
 
 /**
  * @desc    Get all users
@@ -35,8 +35,8 @@ export const getAllUsers = async (req, res) => {
  */
 
 export const registerUser = async (req, res) => {
-     try {
-        const { name, email,mobile, password } = req.body;
+    try {
+        const { name, email, mobile, password } = req.body;
 
         if (!name || !email || !mobile || !password) {
             return res.status(400).json({
@@ -73,11 +73,25 @@ export const registerUser = async (req, res) => {
             emailVerify,
         });
 
-        await sendEmail(
+        // await sendEmail(
+        //     email,
+        //     "Verify Email",
+        //     `Your verification code is: ${emailVerifyAccesstoken}`
+        // );
+
+        const emailSent = await sendEmail(
             email,
             "Verify Email",
             `Your verification code is: ${emailVerifyAccesstoken}`
         );
+
+        if (!emailSent) {
+            return res.status(500).json({
+                success: false,
+                message: "User registered but email failed to send",
+            });
+        }
+
 
         const userResponse = newUser.toObject();
         delete userResponse.password;
@@ -100,7 +114,7 @@ export const registerUser = async (req, res) => {
 
 export const verifyEmail = async (req, res) => {
     try {
-        const { email,password, otp } = req.body;
+        const { email, password, otp } = req.body;
 
         if (!email || !password || !otp) {
             return res.status(400).json({
@@ -264,9 +278,9 @@ export const loginUser = async (req, res) => {
 
 export const logoutUser = async (req, res) => {
     try {
-        const {suid} = req.body;
+        const { suid } = req.body;
 
-        const user = await Suser.findOne({suid});
+        const user = await Suser.findOne({ suid });
 
         if (!user) {
             return res.status(404).json({
