@@ -61,6 +61,20 @@ export const registerUser = async (req, res) => {
         )}`;
         const emailVerify = false;
 
+
+                const emailSent = await sendEmail(
+            email,
+            "Verify Email",
+            `Your verification code is: ${emailVerifyAccesstoken}`
+        );
+
+        if (!emailSent) {
+            return res.status(500).json({
+                success: false,
+                message: "User not registered because of email failed to send",
+            });
+        }
+
         const newUser = await Suser.create({
             suid,
             name,
@@ -79,18 +93,6 @@ export const registerUser = async (req, res) => {
         //     `Your verification code is: ${emailVerifyAccesstoken}`
         // );
 
-        const emailSent = await sendEmail(
-            email,
-            "Verify Email",
-            `Your verification code is: ${emailVerifyAccesstoken}`
-        );
-
-        if (!emailSent) {
-            return res.status(500).json({
-                success: false,
-                message: "User registered but email failed to send",
-            });
-        }
 
 
         const userResponse = newUser.toObject();

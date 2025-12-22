@@ -1,31 +1,31 @@
-import nodemailer from "nodemailer";
+// import nodemailer from "nodemailer";
 
-export const sendEmail = async (to, subject, text) => {
-    try {
-        const transporter = nodemailer.createTransport({
-            host: "smtp-relay.brevo.com",
-            port: 587,
-            secure: false,
-            auth: {
-                user: "satyco2111@gmail.com", // your Brevo login email
-                pass: "xsmtpsib-51b4074eb784a9277ab63e938591dbc5870ff3b20a19f4a9e62be2ceeafe48c6-JkwpcOwvEZZ4WTO1",  // Brevo SMTP key
-            },
-        });
+// export const sendEmail = async (to, subject, text) => {
+//     try {
+//         const transporter = nodemailer.createTransport({
+//             host: "smtp-relay.brevo.com",
+//             port: 587,
+//             secure: false,
+//             auth: {
+//                 user: "satyco2111@gmail.com", // your Brevo login email
+//                 pass: "bskhIEmtWazJsQ3",  // Brevo SMTP key
+//             },
+//         });
 
-        const info = await transporter.sendMail({
-            from: "Your App <no-reply@yourdomain.com>",
-            to,
-            subject,
-            text,
-        });
+//         const info = await transporter.sendMail({
+//             from: "saty<satyco2111@gmail.com>",
+//             to,
+//             subject,
+//             text,
+//         });
 
-        console.log("Brevo email sent:", info.messageId);
-        return true;
-    } catch (error) {
-        console.error("Brevo email error:", error);
-        return false;
-    }
-};
+//         console.log("Brevo email sent:", info.messageId);
+//         return true;
+//     } catch (error) {
+//         console.error("Brevo email error:", error);
+//         return false;
+//     }
+// };
 
 
 
@@ -88,25 +88,25 @@ export const sendEmail = async (to, subject, text) => {
 
 
 
-// import nodemailer from "nodemailer";
+import nodemailer from "nodemailer";
 
-// export const sendEmail = async (to, subject, text) => {
-//     const transporter = nodemailer.createTransport({
-//         host: 'smtp.gmail.com', // e.g., 'smtp.mailersend.net'
-//         port: 465, // e.g., 587 or 2525
-//         secure: true,
-//         auth: {
-//             user: "satyco2111@gmail.com",
-//             pass: "afnn mapu gfai pyzk", // App password
-//         },
-//     });
+export const sendEmail = async (to, subject, text) => {
+    const transporter = nodemailer.createTransport({
+        host: 'smtp.gmail.com', // e.g., 'smtp.mailersend.net'
+        port: 587, // e.g., 587 or 2525 //465 for true 
+        secure: false, 
+        auth: {
+            user: "satyco2111@gmail.com",
+            pass: "afnn mapu gfai pyzk", // App password
+        },
+    });
 
-//     await transporter.sendMail({
-//         from: "satyco2111@gmail.com",
-//         to,
-//         subject,
-//         text,
-//     });
+    await transporter.sendMail({
+        from: "satyco2111@gmail.com",
+        to,
+        subject,
+        text,
+    });
 
-//     return true;
-// };
+    return true;
+};
