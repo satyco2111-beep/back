@@ -14,7 +14,7 @@ export const sendEmail = async (to, subject, text) => {
         });
 
         const info = await transporter.sendMail({
-            from: `"My App" <${"satyco2111@gmail.com"}>`,
+            from: "satyco2111@gmail.com",
             to,
             subject,
             text,
