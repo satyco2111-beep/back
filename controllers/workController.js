@@ -1,4 +1,6 @@
 import Swork from "../models/workModel.js";
+import Sprovider from "../models/providerModel.js";
+
 
 /**
  * @desc    Get all works
@@ -10,48 +12,48 @@ import Swork from "../models/workModel.js";
 
 
 export const getAllWorks = async (req, res) => {
-  try {
-    const {
-      status,
-      service,
-      title,
-      city,
-      local,
-      page = 1,
-      limit = 6,
-    } = req.query;
+    try {
+        const {
+            status,
+            service,
+            title,
+            city,
+            local,
+            page = 1,
+            limit = 6,
+        } = req.query;
 
-    const query = {};
+        const query = {};
 
-    if (status) query.status = status;
-    if (service) query.ssrvcid = service;
-    if (city) query.sctyid = city;
-    if (local) query.sloctyid = local;
-    if (title) query.title = { $regex: title, $options: "i" };
+        if (status) query.status = status;
+        if (service) query.ssrvcid = service;
+        if (city) query.sctyid = city;
+        if (local) query.sloctyid = local;
+        if (title) query.title = { $regex: title, $options: "i" };
 
-    const skip = (page - 1) * limit;
+        const skip = (page - 1) * limit;
 
-    const total = await Swork.countDocuments(query);
-    const works = await Swork.find(query)
-      .skip(skip)
-      .limit(Number(limit))
-      .sort({ createdAt: -1 });
+        const total = await Swork.countDocuments(query);
+        const works = await Swork.find(query)
+            .skip(skip)
+            .limit(Number(limit))
+            .sort({ createdAt: -1 });
 
-    res.status(200).json({
-      success: true,
-      works,
-      pagination: {
-        total,
-        page: Number(page),
-        pages: Math.ceil(total / limit),
-      },
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: "Internal Server Error",
-    });
-  }
+        res.status(200).json({
+            success: true,
+            works,
+            pagination: {
+                total,
+                page: Number(page),
+                pages: Math.ceil(total / limit),
+            },
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: "Internal Server Error",
+        });
+    }
 };
 
 
@@ -63,7 +65,7 @@ export const getAllWorks = async (req, res) => {
  */
 export const getSingleWork = async (req, res) => {
     const { id } = req.params;
-    const swrid =id;
+    const swrid = id;
     try {
         const work = await Swork.findOne({ swrid });
         if (!work) {
@@ -135,12 +137,23 @@ export const registerWork = async (req, res) => {
  */
 export const updateWork = async (req, res) => {
     const { id } = req.params;
-    const swrid =id;
+    const swrid = id;
     const { title, description, sctyid, sloctyid, ssrvcid, status, paymentStatus, price, suid, sprovid } = req.body;
 
     try {
+
+        const provider = await Sprovider.findOne({ sprovid });
+        const payment_dueStaus = provider.payment_due;
+        if (status === "OPEN") {
+            if (payment_dueStaus === true) {
+                return res.status(404).json({
+                    success: false,
+                    message: "Payment is required before accepting new work.",
+                });
+            }
+        }
         // const work = await Swork.findById(id);
-       const work = await Swork.findOne({ swrid });
+        const work = await Swork.findOne({ swrid });
         if (!work) {
             return res.status(404).json({
                 success: false,
@@ -184,7 +197,7 @@ export const updateWork = async (req, res) => {
  */
 export const deleteWork = async (req, res) => {
     const { id } = req.params;
-    const swrid =id;
+    const swrid = id;
     try {
         const work = await Swork.findOne({ swrid });
         if (!work) {
@@ -194,7 +207,7 @@ export const deleteWork = async (req, res) => {
             });
         }
 
-     await Swork.deleteOne({ swrid });
+        await Swork.deleteOne({ swrid });
 
         return res.status(200).json({
             success: true,
@@ -226,65 +239,65 @@ export const deleteWork = async (req, res) => {
 // };
 
 export const getWorksByUser = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { page = 1, limit = 6 } = req.query;
+    try {
+        const { id } = req.params;
+        const { page = 1, limit = 6 } = req.query;
 
-    const query = { suid: id };
-    const skip = (page - 1) * limit;
+        const query = { suid: id };
+        const skip = (page - 1) * limit;
 
-    const total = await Swork.countDocuments(query);
-    const works = await Swork.find(query)
-      .skip(skip)
-      .limit(Number(limit))
-      .sort({ updatedAt: -1 });
+        const total = await Swork.countDocuments(query);
+        const works = await Swork.find(query)
+            .skip(skip)
+            .limit(Number(limit))
+            .sort({ updatedAt: -1 });
 
-    res.status(200).json({
-      success: true,
-      works,
-      pagination: {
-        total,
-        page: Number(page),
-        pages: Math.ceil(total / limit),
-      },
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: "Internal Server Error",
-    });
-  }
+        res.status(200).json({
+            success: true,
+            works,
+            pagination: {
+                total,
+                page: Number(page),
+                pages: Math.ceil(total / limit),
+            },
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: "Internal Server Error",
+        });
+    }
 };
 
 export const getWorksByProvider = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { page = 1, limit = 6 } = req.query;
+    try {
+        const { id } = req.params;
+        const { page = 1, limit = 6 } = req.query;
 
-    const query = { sprovid: id };
-    const skip = (page - 1) * limit;
+        const query = { sprovid: id };
+        const skip = (page - 1) * limit;
 
-    const total = await Swork.countDocuments(query);
-    const works = await Swork.find(query)
-      .skip(skip)
-      .limit(Number(limit))
-      .sort({ updatedAt: -1 });
+        const total = await Swork.countDocuments(query);
+        const works = await Swork.find(query)
+            .skip(skip)
+            .limit(Number(limit))
+            .sort({ updatedAt: -1 });
 
-    res.status(200).json({
-      success: true,
-      works,
-      pagination: {
-        total,
-        page: Number(page),
-        pages: Math.ceil(total / limit),
-      },
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: "Internal Server Error",
-    });
-  }
+        res.status(200).json({
+            success: true,
+            works,
+            pagination: {
+                total,
+                page: Number(page),
+                pages: Math.ceil(total / limit),
+            },
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: "Internal Server Error",
+        });
+    }
 };
 
 

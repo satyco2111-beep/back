@@ -462,3 +462,96 @@ export const verifyProviderToken = async (req, res) => {
         });
     }
 };
+
+
+
+
+/**
+ * @desc    Mark payment as completed
+ * @route   PUT /api/provider/payment-complete/:sprovid
+ * @access  Admin
+ */
+export const providerPaymentComplete = async (req, res) => {
+    try {
+        const { sprovid } = req.params;
+
+        if (!sprovid) {
+            return res.status(400).json({
+                success: false,
+                message: "sprovid is required",
+            });
+        }
+
+        const provider = await Sprovider.findOne({ sprovid });
+
+        if (!provider) {
+            return res.status(404).json({
+                success: false,
+                message: "Provider not found",
+            });
+        }
+
+        provider.payment_due = false;
+        provider.amount_due = "00.00";
+
+        await provider.save();
+
+        return res.status(200).json({
+            success: true,
+            message: "Payment marked as completed",
+            provider,
+        });
+    } catch (error) {
+        console.error("Payment complete error:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Internal Server Error",
+            error: error.message,
+        });
+    }
+};
+/**
+ * @desc    Set payment due with amount
+ * @route   PUT /api/provider/payment-due/:sprovid?amount=500.00
+ * @access  Admin
+ */
+export const providerPaymentDue = async (req, res) => {
+    try {
+        const { sprovid } = req.params;
+        const { amount } = req.query;
+
+        if (!sprovid || !amount) {
+            return res.status(400).json({
+                success: false,
+                message: "sprovid and amount are required",
+            });
+        }
+
+        const provider = await Sprovider.findOne({ sprovid });
+
+        if (!provider) {
+            return res.status(404).json({
+                success: false,
+                message: "Provider not found",
+            });
+        }
+
+        provider.payment_due = true;
+        provider.amount_due = amount;
+
+        await provider.save();
+
+        return res.status(200).json({
+            success: true,
+            message: "Payment due updated successfully",
+            provider,
+        });
+    } catch (error) {
+        console.error("Payment due error:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Internal Server Error",
+            error: error.message,
+        });
+    }
+};
