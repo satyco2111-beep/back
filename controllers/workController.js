@@ -144,7 +144,7 @@ export const updateWork = async (req, res) => {
 
         const provider = await Sprovider.findOne({ sprovid });
         const payment_dueStaus = provider.payment_due;
-        if (status === "OPEN") {
+        if (status === "ACCEPTED") {
             if (payment_dueStaus === true) {
                 return res.status(404).json({
                     success: false,
