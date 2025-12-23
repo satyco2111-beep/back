@@ -26,7 +26,7 @@ workRouter.put('/byuser/:id', userAuthMiddleware ,updateWork);
 workRouter.put('/byprovider/:id',providerAuthMiddleware , updateWork);
 
 // Route to delete a work by ID
-workRouter.delete('/:id', deleteWork);
+workRouter.delete('/:id',providerAuthMiddleware, deleteWork);
 
 // 
 workRouter.get('/user/:id', getWorksByUser);
