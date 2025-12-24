@@ -127,7 +127,7 @@
 // .then(data => console.log(data.success ? 'Sent!' : 'Error: ' + data.message));
 
 
-
+// https://habit-flow--satyco2111.replit.app
 
 
 // 🚀 API Endpoints (Ready to Use)
@@ -204,7 +204,7 @@ import nodemailer from "nodemailer";
 
 export const sendEmail = async (to, subject, text) => {
 
-    const resp = await fetch('https://4c6e2aa4-9801-4d3d-aad1-dfd3d3d5f705-00-n9ysph1wwdzg.sisko.replit.dev/api/send-email', {
+    const resp = await fetch('https://mynodeweb--satyco2111.replit.app/api/send-email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
