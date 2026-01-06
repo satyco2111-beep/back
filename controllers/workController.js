@@ -300,6 +300,51 @@ export const getWorksByProvider = async (req, res) => {
     }
 };
 
+// =============== By user cancele =======================================
+
+export const byUserCanceleWork = async (req, res) => {
+    const { id } = req.params;
+    const swrid = id;
+    const { title, description, sctyid, sloctyid, ssrvcid, status, paymentStatus, price, suid, sprovid } = req.body;
+
+    try {
+        // const work = await Swork.findById(id);
+        const work = await Swork.findOne({ swrid });
+        if (!work) {
+            return res.status(404).json({
+                success: false,
+                message: "Work not found",
+            });
+        }
+
+        // Update the work with new data
+        work.title = title || work.title;
+        work.description = description || work.description;
+        work.sctyid = sctyid || work.sctyid;
+        work.sloctyid = sloctyid || work.sloctyid;
+        work.ssrvcid = ssrvcid || work.ssrvcid;
+        work.status = status || work.status;
+        work.paymentStatus = paymentStatus || work.paymentStatus;
+        work.price = price || work.price;
+        work.suid = suid || work.suid;
+        work.sprovid = sprovid || work.sprovid;
+
+        await work.save();
+
+        return res.status(200).json({
+            success: true,
+            message: "Work updated successfully",
+            work,
+        });
+    } catch (error) {
+        console.error("Error updating work:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Internal Server Error",
+            error: error.message,
+        });
+    }
+};
 
 
 
