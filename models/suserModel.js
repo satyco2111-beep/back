@@ -30,6 +30,8 @@ const SuserSchema = new mongoose.Schema({
     mobile: String,
     password: String,
     roll: { type: String, default: "1" },
+    cradit_value: { type: String, default: "0" },
+    referralCode: { type: String, unique: true, sparse: true },
     accesstoken: String,
     sessionAccesstoken: String,
     emailVerifyAccesstoken: String,

@@ -1,4 +1,5 @@
 import Suser from "../models/suserModel.js";
+import Swork from "../models/workModel.js";
 import jwt from "jsonwebtoken";
 
 
@@ -36,7 +37,7 @@ export const getAllUsers = async (req, res) => {
 
 export const registerUser = async (req, res) => {
     try {
-        const { name, email, mobile, password } = req.body;
+        const { name, email, mobile, password, referralCode } = req.body;
 
         if (!name || !email || !mobile || !password) {
             return res.status(400).json({
@@ -81,11 +82,21 @@ export const registerUser = async (req, res) => {
             email,
             mobile,
             password,
+            cradit_value: "0",
             accesstoken,
             sessionAccesstoken,
             emailVerifyAccesstoken,
             emailVerify,
         });
+
+        // referral: link invitee user to inviter user (optional)
+        try {
+            const { createUserReferralFromCode, ensureUserReferralCode } = await import("./referralController.js");
+            await ensureUserReferralCode(newUser);
+            await createUserReferralFromCode({ inviteeUser: newUser, referralCode });
+        } catch (e) {
+            // don't block registration on referral issues
+        }
 
         // await sendEmail(
         //     email,
@@ -388,5 +399,74 @@ export const verifyUserToken = async (req, res) => {
             valid: false,
             message: "Error verifying token",
         });
+    }
+};
+
+export const getUserDashboard = async (req, res) => {
+    try {
+        const suid = req.user.id;
+        const user = await Suser.findOne({ suid }).select("-password").lean();
+        if (!user) {
+            return res.status(404).json({ success: false, message: "User not found" });
+        }
+        const profile = { ...user };
+        delete profile.accesstoken;
+        delete profile.sessionAccesstoken;
+        delete profile.emailVerifyAccesstoken;
+
+        const [totalWorks, activeWorks, completedWorks, openWorks] = await Promise.all([
+            Swork.countDocuments({ suid }),
+            Swork.countDocuments({ suid, status: { $in: ["OPEN", "ACCEPTED", "STARTED"] } }),
+            Swork.countDocuments({ suid, status: { $in: ["COMPLETED", "DONE"] } }),
+            Swork.countDocuments({ suid, status: "OPEN" }),
+        ]);
+
+        const recentWorks = await Swork.find({ suid }).sort({ updatedAt: -1 }).limit(5).lean();
+
+        return res.json({
+            success: true,
+            profile,
+            stats: {
+                totalWorks,
+                activeWorks,
+                completedWorks,
+                openWorks,
+            },
+            recentWorks,
+        });
+    } catch (error) {
+        console.error("getUserDashboard:", error);
+        return res.status(500).json({ success: false, message: "Internal Server Error" });
+    }
+};
+
+export const updateUserProfile = async (req, res) => {
+    try {
+        const suid = req.user.id;
+        const { name, mobile } = req.body;
+
+        const user = await Suser.findOne({ suid });
+        if (!user) {
+            return res.status(404).json({ success: false, message: "User not found" });
+        }
+
+        if (name !== undefined && name !== null) {
+            const t = String(name).trim();
+            if (t) user.name = t;
+        }
+        if (mobile !== undefined && mobile !== null) {
+            user.mobile = String(mobile).trim();
+        }
+
+        await user.save();
+        const u = user.toObject();
+        delete u.password;
+        delete u.accesstoken;
+        delete u.sessionAccesstoken;
+        delete u.emailVerifyAccesstoken;
+        return res.json({ success: true, user: u });
+    } catch (error) {
+        console.error("updateUserProfile:", error);
+        return res.status(500).json({ success: false, message: "Internal Server Error" });
     }
 };

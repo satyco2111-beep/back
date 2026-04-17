@@ -23,7 +23,12 @@ import {
     getProviderById,
     verifyProviderToken,
     providerPaymentComplete,
-    providerPaymentDue
+    providerPaymentDue,
+    updateProviderCredit,
+    getProviderDashboard,
+    updateProviderProfile,
+    updateProvider,
+    getLiveProviders,
 } from "../controllers/providerController.js";
 
 import { providerAuthMiddleware } from "../middleware/providerAuth.js";
@@ -41,5 +46,11 @@ providerRouter.get("/provider/:sprovid", getProviderById);
 providerRouter.post("/verify-token", verifyProviderToken);
 providerRouter.put("/payment-due/:sprovid", providerPaymentDue);
 providerRouter.put("/payment-complete/:sprovid", providerPaymentComplete);
+providerRouter.put("/update-credit/:sprovid",updateProviderCredit);
+
+providerRouter.get("/dashboard", providerAuthMiddleware, getProviderDashboard);
+providerRouter.put("/profile", providerAuthMiddleware, updateProviderProfile);
+providerRouter.put("/provider/:sprovid", updateProvider);
+providerRouter.get("/live", getLiveProviders);
 
 export default providerRouter;

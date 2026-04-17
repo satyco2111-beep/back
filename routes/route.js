@@ -9,6 +9,9 @@ import providerRouter from "./providerRoute.js"
 import workRouter from "./workRoute.js"
 import commentRouter from "./commentRoute.js"
 import reviewRouter from "./reviewRoute.js"
+import referralRouter from "./referralRoute.js"
+import paymentRouter from "./paymentRoute.js"
+import superAdminRouter from "./superAdminRoute.js"
 
 
 
@@ -22,6 +25,9 @@ RouterMain.use("/providers", providerRouter);
 RouterMain.use("/works", workRouter);
 RouterMain.use("/comment", commentRouter);
 RouterMain.use("/review", reviewRouter);
+RouterMain.use("/referrals", referralRouter);
+RouterMain.use("/payments", paymentRouter);
+RouterMain.use("/superadmin", superAdminRouter);
 
 
 export default RouterMain;

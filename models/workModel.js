@@ -14,7 +14,7 @@ const workSchema = new mongoose.Schema(
     price: { type: String, required: true },
     suid: { type: String, required: true },
     sprovid: { type: String },
-  },
+  }, 
   { timestamps: true }
 );
 

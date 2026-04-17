@@ -1,5 +1,6 @@
 import Swork from "../models/workModel.js";
 import Sprovider from "../models/providerModel.js";
+import { rewardProviderInviterForFirstAccept, rewardUserInviterForWorkAccepted } from "./referralController.js";
 
 
 /**
@@ -92,7 +93,7 @@ export const getSingleWork = async (req, res) => {
 /**
  * @desc    Register new work
  * @route   POST /api/works/register
- * @access  Public
+ * @access  Public 
  */
 export const registerWork = async (req, res) => {
     try {
@@ -141,18 +142,19 @@ export const updateWork = async (req, res) => {
     const { title, description, sctyid, sloctyid, ssrvcid, status, paymentStatus, price, suid, sprovid } = req.body;
 
     try {
+        const providerOnlyStatuses = new Set(["ACCEPTED", "STARTED", "COMPLETED", "DONE"]);
 
-        const provider = await Sprovider.findOne({ sprovid });
-        const payment_dueStaus = provider.payment_due;
-        if (status === "ACCEPTED") {
-            if (payment_dueStaus === true) {
-                return res.status(404).json({
-                    success: false,
-                    message: "Payment is required before accepting new work.",
-                });
-            }
+        const authedProviderId = req.provider?.id || null;
+        const authedUserId = req.user?.id || null;
+
+        // Provider lifecycle actions must be authenticated as provider
+        if (status && providerOnlyStatuses.has(status) && !authedProviderId) {
+            return res.status(401).json({
+                success: false,
+                message: "Unauthorized",
+            });
         }
-        // const work = await Swork.findById(id);
+
         const work = await Swork.findOne({ swrid });
         if (!work) {
             return res.status(404).json({
@@ -161,19 +163,116 @@ export const updateWork = async (req, res) => {
             });
         }
 
+        // Accept flow: bind provider from token, check due + credit, then deduct credit
+        if (status === "ACCEPTED") {
+            if (work.status && work.status !== "OPEN") {
+                return res.status(400).json({
+                    success: false,
+                    message: "Work is not open for acceptance",
+                });
+            }
+
+            const provider = await Sprovider.findOne({ sprovid: authedProviderId });
+            if (!provider) {
+                return res.status(404).json({
+                    success: false,
+                    message: "Provider not found",
+                });
+            }
+
+            if (provider.payment_due === true) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Please complete work first",
+                });
+            }
+
+            const currentCredit = Number(provider.cradit_value) || 0;
+            const creditToDeduct = (Number(work.price) || 0) * 0.10;
+            const remainingCredit = currentCredit - creditToDeduct;
+
+            if (remainingCredit < 0) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Insufficient credit. Cannot accept this work.",
+                });
+            }
+
+            provider.cradit_value = Number(remainingCredit.toFixed(2));
+            await provider.save();
+
+            // bind work to authenticated provider
+            work.sprovid = authedProviderId;
+        }
+
+        // Cancel flow: can be triggered by assigned provider or work owner.
+        // It should unassign provider and reset provider due.
+        if (status === "CANCELED" || status === "CANCELLED") {
+            const isAssignedProviderCancelling =
+                !!authedProviderId && !!work.sprovid && work.sprovid === authedProviderId;
+            const isOwnerUserCancelling = !!authedUserId && work.suid === authedUserId;
+
+            if ((authedProviderId || authedUserId) && !isAssignedProviderCancelling && !isOwnerUserCancelling) {
+                return res.status(403).json({
+                    success: false,
+                    message: "You are not allowed to cancel this work",
+                });
+            }
+
+            if (work.sprovid) {
+                const assignedProvider = await Sprovider.findOne({ sprovid: work.sprovid });
+                if (assignedProvider) {
+                    assignedProvider.payment_due = false;
+                    assignedProvider.amount_due = "00.00";
+                    await assignedProvider.save();
+                }
+            }
+
+            work.sprovid = "";
+            work.status = "CANCELED";
+        }
+
+        // Reopen flow: only work owner can reopen their cancelled work
+        if (status === "OPEN") {
+            if (authedUserId && work.suid !== authedUserId) {
+                return res.status(403).json({
+                    success: false,
+                    message: "You are not allowed to reopen this work",
+                });
+            }
+
+            work.sprovid = "";
+            work.status = "OPEN";
+        }
+
         // Update the work with new data
         work.title = title || work.title;
         work.description = description || work.description;
         work.sctyid = sctyid || work.sctyid;
         work.sloctyid = sloctyid || work.sloctyid;
         work.ssrvcid = ssrvcid || work.ssrvcid;
-        work.status = status || work.status;
+        if (!["CANCELED", "CANCELLED", "OPEN"].includes(status)) {
+            work.status = status || work.status;
+        }
         work.paymentStatus = paymentStatus || work.paymentStatus;
         work.price = price || work.price;
         work.suid = suid || work.suid;
-        work.sprovid = sprovid || work.sprovid;
+
+        // Do not allow client to spoof provider id on provider-authenticated requests
+        if (!authedProviderId) {
+            // for legacy/admin usage (unauthed route), keep previous behavior
+            work.sprovid = sprovid || work.sprovid;
+        }
 
         await work.save();
+
+        // Referral rewards (best-effort, non-blocking)
+        if (status === "ACCEPTED") {
+            Promise.resolve()
+                .then(() => rewardUserInviterForWorkAccepted(work.suid, work.price))
+                .then(() => rewardProviderInviterForFirstAccept(authedProviderId))
+                .catch(() => {});
+        }
 
         return res.status(200).json({
             success: true,
@@ -317,17 +416,26 @@ export const byUserCanceleWork = async (req, res) => {
             });
         }
 
+        if (work.sprovid) {
+            const assignedProvider = await Sprovider.findOne({ sprovid: work.sprovid });
+            if (assignedProvider) {
+                assignedProvider.payment_due = false;
+                assignedProvider.amount_due = "00.00";
+                await assignedProvider.save();
+            }
+        }
+
         // Update the work with new data
         work.title = title || work.title;
         work.description = description || work.description;
         work.sctyid = sctyid || work.sctyid;
         work.sloctyid = sloctyid || work.sloctyid;
         work.ssrvcid = ssrvcid || work.ssrvcid;
-        work.status = status || work.status;
+        work.status = "CANCELED";
         work.paymentStatus = paymentStatus || work.paymentStatus;
         work.price = price || work.price;
         work.suid = suid || work.suid;
-        work.sprovid = sprovid || work.sprovid;
+        work.sprovid = "";
 
         await work.save();
 

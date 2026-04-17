@@ -33,11 +33,29 @@ const providerSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    cradit_value: String,
     amount_due: String,
+    referralCode: { type: String, unique: true, sparse: true },
     accesstoken: String,
     sessionAccesstoken: String,
     emailVerifyAccesstoken: String,
     emailVerify: {
+      type: Boolean,
+      default: false,
+    },
+    ssrvcid: {
+      type: String,
+      default: null,
+    },
+    sctyid: {
+      type: String,
+      default: null,
+    },
+    sloctyid: {
+      type: String,
+      default: null,
+    },
+    islive: {
       type: Boolean,
       default: false,
     },

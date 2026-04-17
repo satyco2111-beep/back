@@ -77,6 +77,7 @@
 
 
 import Sprovider from "../models/providerModel.js";
+import Swork from "../models/workModel.js";
 import jwt from "jsonwebtoken";
 import { sendEmail } from "../utils/sendEmail.js";
 
@@ -110,7 +111,7 @@ export const getAllProvider = async (req, res) => {
  */
 export const registerProvider = async (req, res) => {
     try {
-        const { name, email, password,mobile } = req.body;
+        const { name, email, password, mobile, referralCode } = req.body;
 
         if (!name || !email || !password || !mobile) {
             return res.status(400).json({
@@ -129,6 +130,7 @@ export const registerProvider = async (req, res) => {
 
         const sprovid = `SPROVIDER-${Date.now()}`;
         const accesstoken = "";
+        const cradit_value = "00";
         const amount_due = "00.00";
         const sessionAccesstoken = "";
         const emailVerifyAccesstoken = `${Math.floor(
@@ -142,12 +144,23 @@ export const registerProvider = async (req, res) => {
             email,
             mobile,
             password,
+            cradit_value,
             amount_due,
+            referralCode: undefined,
             accesstoken,
             sessionAccesstoken,
             emailVerifyAccesstoken,
             emailVerify,
         });
+
+        // referral: link invitee provider to inviter provider (optional)
+        try {
+            const { createProviderReferralFromCode, ensureProviderReferralCode } = await import("./referralController.js");
+            await ensureProviderReferralCode(newProvider);
+            await createProviderReferralFromCode({ inviteeProvider: newProvider, referralCode });
+        } catch (e) {
+            // don't block registration on referral issues
+        }
 
         await sendEmail(
             email,
@@ -548,6 +561,248 @@ export const providerPaymentDue = async (req, res) => {
         });
     } catch (error) {
         console.error("Payment due error:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Internal Server Error",
+            error: error.message,
+        });
+    }
+};
+
+
+
+
+/**
+ * @desc    Update provider credit value
+ * @route   PUT /api/provider/update-credit/:sprovid
+ * @access  Private (recommended)
+ */
+export const updateProviderCredit = async (req, res) => {
+    try {
+        const { sprovid } = req.params;
+        const { cradit_value } = req.body;
+
+        if (cradit_value === undefined) {
+            return res.status(400).json({
+                success: false,
+                message: "cradit_value is required",
+            });
+        }
+
+        const amountToAdd = Number(cradit_value);
+
+        if (isNaN(amountToAdd)) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid credit value",
+            });
+        }
+
+        const provider = await Sprovider.findOne({ sprovid });
+
+        if (!provider) {
+            return res.status(404).json({
+                success: false,
+                message: "Provider not found",
+            });
+        }
+
+        // convert existing value safely
+        const currentCredit = Number(provider.cradit_value) || 0;
+
+        // ✅ ADD instead of overwrite
+        provider.cradit_value = currentCredit + amountToAdd;
+
+        await provider.save();
+
+        const response = provider.toObject();
+        delete response.password;
+
+        return res.status(200).json({
+            success: true,
+            message: "Credit added successfully",
+            provider: response,
+        });
+
+    } catch (error) {
+        console.error("Error updating credit:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Internal Server Error",
+            error: error.message,
+        });
+    }
+};
+
+export const getProviderDashboard = async (req, res) => {
+    try {
+        const sprovid = req.provider.id;
+        const providerDoc = await Sprovider.findOne({ sprovid }).select("-password").lean();
+        if (!providerDoc) {
+            return res.status(404).json({ success: false, message: "Provider not found" });
+        }
+        const profile = { ...providerDoc };
+        delete profile.accesstoken;
+        delete profile.sessionAccesstoken;
+        delete profile.emailVerifyAccesstoken;
+
+        const [totalAssigned, activeCount, completedCount, availableOpenJobs] = await Promise.all([
+            Swork.countDocuments({ sprovid }),
+            Swork.countDocuments({ sprovid, status: { $in: ["ACCEPTED", "STARTED"] } }),
+            Swork.countDocuments({ sprovid, status: { $in: ["COMPLETED", "DONE"] } }),
+            Swork.countDocuments({ status: "OPEN" }),
+        ]);
+
+        const completedWorks = await Swork.find({
+            sprovid,
+            status: { $in: ["COMPLETED", "DONE"] },
+        }).lean();
+        const totalEarnings = completedWorks.reduce((sum, w) => sum + (Number(w.price) || 0), 0);
+
+        const creditVal = providerDoc.cradit_value;
+
+        const [recentOpenJobs, recentActive, recentCompleted] = await Promise.all([
+            Swork.find({ status: "OPEN" }).sort({ createdAt: -1 }).limit(5).lean(),
+            Swork.find({ sprovid, status: { $in: ["ACCEPTED", "STARTED"] } })
+                .sort({ updatedAt: -1 })
+                .limit(5)
+                .lean(),
+            Swork.find({ sprovid, status: { $in: ["COMPLETED", "DONE"] } })
+                .sort({ updatedAt: -1 })
+                .limit(5)
+                .lean(),
+        ]);
+
+        return res.json({
+            success: true,
+            profile,
+            stats: {
+                credit: creditVal || "0",
+                payment_due: providerDoc.payment_due,
+                amount_due: providerDoc.amount_due,
+                totalAssigned,
+                activeCount,
+                completedCount,
+                availableOpenJobs,
+                totalEarnings: Number(totalEarnings.toFixed(2)),
+            },
+            recentOpenJobs,
+            recentActive,
+            recentCompleted,
+        });
+    } catch (error) {
+        console.error("getProviderDashboard:", error);
+        return res.status(500).json({ success: false, message: "Internal Server Error" });
+    }
+};
+
+export const updateProviderProfile = async (req, res) => {
+    try {
+        const sprovid = req.provider.id;
+        const { name, mobile } = req.body;
+
+        const provider = await Sprovider.findOne({ sprovid });
+        if (!provider) {
+            return res.status(404).json({ success: false, message: "Provider not found" });
+        }
+
+        if (name !== undefined && name !== null) {
+            const t = String(name).trim();
+            if (t) provider.name = t;
+        }
+        if (mobile !== undefined && mobile !== null) {
+            provider.mobile = String(mobile).trim();
+        }
+
+        await provider.save();
+        const p = provider.toObject();
+        delete p.password;
+        delete p.accesstoken;
+        delete p.sessionAccesstoken;
+        delete p.emailVerifyAccesstoken;
+        return res.json({ success: true, provider: p });
+    } catch (error) {
+        console.error("updateProviderProfile:", error);
+        return res.status(500).json({ success: false, message: "Internal Server Error" });
+    }
+};
+
+/**
+ * @desc    Update provider service, city, local area and live status
+ * @route   PUT /api/providers/provider/:sprovid
+ * @access  Private
+ */
+export const updateProvider = async (req, res) => {
+    try {
+        const { sprovid } = req.params;
+        const updates = {};
+
+        if (req.body.islive !== undefined) {
+            const isGoingLive = !!req.body.islive;
+            updates.islive = isGoingLive;
+
+            // When going offline, clear service, city, and local area
+            if (!isGoingLive) {
+                updates.ssrvcid = null;
+                updates.sctyid = null;
+                updates.sloctyid = null;
+            }
+        }
+
+        // Only update service, city, local area if provider is going/staying live
+        if (req.body.islive !== false) {
+            if (req.body.ssrvcid !== undefined) updates.ssrvcid = req.body.ssrvcid;
+            if (req.body.sctyid !== undefined) updates.sctyid = req.body.sctyid;
+            if (req.body.sloctyid !== undefined) updates.sloctyid = req.body.sloctyid;
+        }
+
+        const provider = await Sprovider.findOneAndUpdate(
+            { sprovid },
+            updates,
+            { new: true }
+        );
+
+        if (!provider) {
+            return res.status(404).json({ success: false, message: "Provider not found" });
+        }
+
+        const p = provider.toObject();
+        delete p.password;
+        delete p.accesstoken;
+        delete p.sessionAccesstoken;
+        delete p.emailVerifyAccesstoken;
+
+        return res.json({ success: true, provider: p });
+    } catch (error) {
+        console.error("updateProvider:", error);
+        return res.status(500).json({ success: false, message: "Internal Server Error" });
+    }
+};
+
+/**
+ * @desc    Get live providers with filters by service, city, and local area
+ * @route   GET /api/providers/live?ssrvcid=&sctyid=&sloctyid=
+ * @access  Public
+ */
+export const getLiveProviders = async (req, res) => {
+    try {
+        const { ssrvcid, sctyid, sloctyid } = req.query;
+        const query = { islive: true };
+
+        if (ssrvcid) query.ssrvcid = ssrvcid;
+        if (sctyid) query.sctyid = sctyid;
+        if (sloctyid) query.sloctyid = sloctyid;
+
+        const providers = await Sprovider.find(query, "-password -accesstoken -sessionAccesstoken -emailVerifyAccesstoken");
+        const count = providers.length;
+
+        return res.status(200).json({
+            success: true,
+            count,
+            providers,
+        });
+    } catch (error) {
+        console.error("Error fetching live providers:", error);
         return res.status(500).json({
             success: false,
             message: "Internal Server Error",

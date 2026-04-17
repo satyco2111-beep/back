@@ -1,4 +1,5 @@
 import SlocalAria from "../models/localAriaModel.js";
+import { getPaginationQuery, paginationMeta, wantsPagination } from "../utils/pagination.js";
 
 /**
  * @desc    Get all LocalAria
@@ -7,7 +8,18 @@ import SlocalAria from "../models/localAriaModel.js";
  */
 export const getAllLocalAria = async (req, res) => {
     try {
-        const loaclArias = await SlocalAria.find({},); 
+        if (wantsPagination(req)) {
+            const { page, limit, skip } = getPaginationQuery(req);
+            const total = await SlocalAria.countDocuments({});
+            const loaclArias = await SlocalAria.find({}).sort({ createdAt: -1 }).skip(skip).limit(limit);
+            return res.status(200).json({
+                success: true,
+                message: "Local areas (page)",
+                loaclArias,
+                pagination: paginationMeta(page, limit, total),
+            });
+        }
+        const loaclArias = await SlocalAria.find({}).sort({ createdAt: -1 });
         return res.status(200).json({
             success: true,
             message: "All loacl city fetched successfully",

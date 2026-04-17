@@ -1,3 +1,6 @@
+
+
+
 // import nodemailer from "nodemailer";
 
 // export const sendEmail = async (to, subject, text) => {
@@ -89,28 +92,28 @@
 
 // this is main  code work on here without any extarnal api  =======================================
 
-// import nodemailer from "nodemailer";
+import nodemailer from "nodemailer";
 
-// export const sendEmail = async (to, subject, text) => {
-//     const transporter = nodemailer.createTransport({
-//         host: 'smtp.gmail.com', // e.g., 'smtp.mailersend.net'
-//         port: 587, // e.g., 587 or 2525 //465 for true 
-//         secure: false, 
-//         auth: {
-//             user: "satyco2111@gmail.com",
-//             pass: "afnn mapu gfai pyzk", // App password
-//         },
-//     });
+export const sendEmail = async (to, subject, text) => {
+    const transporter = nodemailer.createTransport({
+        host: 'smtp.gmail.com', // e.g., 'smtp.mailersend.net'
+        port: 587, // e.g., 587 or 2525 //465 for true 
+        secure: false, 
+        auth: {
+            user: "satyco2111@gmail.com",
+            pass: "afnn mapu gfai pyzk", // App password
+        },
+    });
 
-//     await transporter.sendMail({
-//         from: "satyco2111@gmail.com",
-//         to,
-//         subject,
-//         text,
-//     });
+    await transporter.sendMail({
+        from: "satyco2111@gmail.com",
+        to,
+        subject,
+        text,
+    });
 
-//     return true;
-// };
+    return true;
+};
 
 // =====================================================================
 
@@ -200,26 +203,26 @@
 
 // finaly working code by riplit api ====================================
 
-import nodemailer from "nodemailer";
+// import nodemailer from "nodemailer";
 
-export const sendEmail = async (to, subject, text) => {
+// export const sendEmail = async (to, subject, text) => {
 
-    const resp = await fetch('https://mynodeweb--satyco2111.replit.app/api/send-email', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            receiver_email: to,
-            text: text,
-            subject: subject
-        })
-    })
-    const data = await resp.json();
+//     const resp = await fetch('https://mynodeweb--satyco2111.replit.app/api/send-email', {
+//         method: 'POST',
+//         headers: { 'Content-Type': 'application/json' },
+//         body: JSON.stringify({
+//             receiver_email: to,
+//             text: text,
+//             subject: subject
+//         })
+//     })
+//     const data = await resp.json();
 
-    if (data.success) { return true; } else {
+//     if (data.success) { return true; } else {
 
-        return false;
-    }
-};
+//         return false;
+//     }
+// };
 
 
 

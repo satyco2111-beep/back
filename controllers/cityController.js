@@ -1,4 +1,5 @@
 import Scity from "../models/cityModel.js";
+import { getPaginationQuery, paginationMeta, wantsPagination } from "../utils/pagination.js";
 
 /**
  * @desc    Get all City
@@ -7,7 +8,18 @@ import Scity from "../models/cityModel.js";
  */
 export const getAllCity = async (req, res) => {
     try {
-        const citys = await Scity.find({},); 
+        if (wantsPagination(req)) {
+            const { page, limit, skip } = getPaginationQuery(req);
+            const total = await Scity.countDocuments({});
+            const citys = await Scity.find({}).sort({ createdAt: -1 }).skip(skip).limit(limit);
+            return res.status(200).json({
+                success: true,
+                message: "City list (page)",
+                citys,
+                pagination: paginationMeta(page, limit, total),
+            });
+        }
+        const citys = await Scity.find({}).sort({ createdAt: -1 });
         return res.status(200).json({
             success: true,
             message: "All city fetched successfully",

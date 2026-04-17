@@ -6,6 +6,7 @@ import cors from "cors";
 // import all file and variables ----- 
 import RouterMain from "../routes/route.js"
 import connectDB from "../config/db.js"
+import { ensureDefaultSuperAdmin } from "../controllers/superAdminController.js";
 
 
 
@@ -16,6 +17,8 @@ app.use(express.json());
 dotenv.config();
 const PORT = process.env.PORT || 5000;
 connectDB();
+// create default super admin if env provided
+ensureDefaultSuperAdmin().catch(() => {});
 
 //  Alaow cors ===============
 
@@ -43,4 +46,4 @@ app.use('/api', RouterMain);
 console.log('PORT', PORT)
 app.listen(PORT, () => {
     console.log(`🚀 Server running on port ${PORT}`)
-})
+})                                                                                                                                                                                                              

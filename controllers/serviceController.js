@@ -1,4 +1,5 @@
 import Sservices from "../models/servicesModel.js";
+import { getPaginationQuery, paginationMeta, wantsPagination } from "../utils/pagination.js";
 
 /**
  * @desc    Get all services
@@ -7,7 +8,18 @@ import Sservices from "../models/servicesModel.js";
  */
 export const getAllServices = async (req, res) => {
     try {
-        const services = await Sservices.find({},); 
+        if (wantsPagination(req)) {
+            const { page, limit, skip } = getPaginationQuery(req);
+            const total = await Sservices.countDocuments({});
+            const services = await Sservices.find({}).sort({ createdAt: -1 }).skip(skip).limit(limit);
+            return res.status(200).json({
+                success: true,
+                message: "Services (page)",
+                services,
+                pagination: paginationMeta(page, limit, total),
+            });
+        }
+        const services = await Sservices.find({}).sort({ createdAt: -1 });
         return res.status(200).json({
             success: true,
             message: "All Services fetched successfully",
