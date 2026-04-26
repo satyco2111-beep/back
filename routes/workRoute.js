@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { getAllWorks, getSingleWork, registerWork, updateWork, deleteWork, getWorksByUser,getWorksByProvider,byUserCanceleWork} from "../controllers/workController.js"
+import { getAllWorks, getSingleWork, registerWork, updateWork, deleteWork, getWorksByUser,getWorksByProvider,byUserCanceleWork, increaseWorkPrice} from "../controllers/workController.js"
 import {userAuthMiddleware} from "../middleware/userAuth.js"
 import { providerAuthMiddleware } from "../middleware/providerAuth.js";
 
@@ -23,6 +23,7 @@ workRouter.post('/register', registerWork);
 // Route to update an existing work
 workRouter.put('/:id', updateWork);
 workRouter.put('/byUserCanceleWork/:id', byUserCanceleWork);
+workRouter.put('/increase-price/:id', increaseWorkPrice);
 workRouter.put('/byuser/:id', userAuthMiddleware ,updateWork);
 workRouter.put('/byprovider/:id',providerAuthMiddleware , updateWork);
 

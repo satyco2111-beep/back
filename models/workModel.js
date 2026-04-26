@@ -9,7 +9,12 @@ const workSchema = new mongoose.Schema(
     sctyid: { type: String, required: true },
     sloctyid: { type: String, required: true },
     ssrvcid: { type: String, required: true },
-    status: { type: String, required: true ,default:"OPEN"},
+    status: { 
+      type: String, 
+      required: true, 
+      default: "OPEN",
+      enum: ["OPEN", "REQUESTED", "ACCEPTED", "DONE", "COMPLETED", "CANCELED", "CANCELLED", "STARTED", "IN_PROGRESS", "FINISHED", "REJECTED"] 
+    },
     paymentStatus: { type: String, required: true ,default:"UNPAID"},
     price: { type: String, required: true },
     suid: { type: String, required: true },

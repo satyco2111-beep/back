@@ -1,5 +1,6 @@
 import Swork from "../models/workModel.js";
 import Sprovider from "../models/providerModel.js";
+import SsubscriptionMeProvider from "../models/subscriptionModelMeProvider.js";
 import { rewardProviderInviterForFirstAccept, rewardUserInviterForWorkAccepted } from "./referralController.js";
 
 
@@ -187,9 +188,40 @@ export const updateWork = async (req, res) => {
                 });
             }
 
-            const currentCredit = Number(provider.cradit_value) || 0;
-            const creditToDeduct = (Number(work.price) || 0) * 0.10;
-            const remainingCredit = currentCredit - creditToDeduct;
+            //     const existingSub = await SsubscriptionMeProvider.findOne({
+            //       sprovid: authedProviderId,
+            //       status: "ACTIVE",
+            //     });
+
+            // const currentCredit = Number(provider.cradit_value) || 0;
+            // let creditToDeduct = (Number(work.price) || 0) * 0.10; 
+            // if(existingSub){
+                
+            //     creditToDeduct =(Number(work.price) || 0) * 0.06; 
+            // }
+            // const remainingCredit = currentCredit - creditToDeduct;
+
+                 const existingSub = await SsubscriptionMeProvider.findOne({
+                sprovid: authedProviderId,
+                status: "ACTIVE",
+                });
+
+                // Ensure numeric price
+                const workPrice = Number(work.price) || 0;
+
+                // Default = 10%
+                let deductionRate = 0.10;
+
+                // If subscription exists → 6%
+                if (existingSub) {
+                deductionRate = 0.06;
+                }
+
+                // Final credit deduction
+                const creditToDeduct = workPrice * deductionRate;
+
+                const currentCredit = Number(provider.cradit_value) || 0;
+                const remainingCredit = currentCredit - creditToDeduct;
 
             if (remainingCredit < 0) {
                 return res.status(400).json({
@@ -200,6 +232,8 @@ export const updateWork = async (req, res) => {
 
             provider.cradit_value = Number(remainingCredit.toFixed(2));
             await provider.save();
+
+
 
             // bind work to authenticated provider
             work.sprovid = authedProviderId;
@@ -281,6 +315,67 @@ export const updateWork = async (req, res) => {
         });
     } catch (error) {
         console.error("Error updating work:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Internal Server Error",
+            error: error.message,
+        });
+    }
+};
+
+/**
+ * @desc    Increase work price by predefined amounts
+ * @route   PUT /api/works/increase-price/:id
+ * @access  Private (User who posted the work)
+ */
+export const increaseWorkPrice = async (req, res) => {
+    const { id } = req.params;
+    const swrid = id;
+    const { increaseBy } = req.body;
+
+    // Valid increase amounts
+    const validAmounts = [10, 30, 50, 100];
+    
+    if (!increaseBy || !validAmounts.includes(Number(increaseBy))) {
+        return res.status(400).json({
+            success: false,
+            message: `Invalid amount. Choose from: ${validAmounts.join(", ")}`,
+        });
+    }
+
+    try {
+        const work = await Swork.findOne({ swrid });
+        if (!work) {
+            return res.status(404).json({
+                success: false,
+                message: "Work not found",
+            });
+        }
+
+        // Only allow price increase for OPEN or REQUESTED works
+        if (!["OPEN", "REQUESTED"].includes(work.status)) {
+            return res.status(400).json({
+                success: false,
+                message: `Cannot increase price. Work status is ${work.status}`,
+            });
+        }
+
+        // Parse current price and add increase
+        const currentPrice = Number(work.price) || 0;
+        const newPrice = currentPrice + Number(increaseBy);
+
+        work.price = String(newPrice);
+        await work.save();
+
+        return res.status(200).json({
+            success: true,
+            message: `Price increased by ₹${increaseBy}`,
+            work,
+            previousPrice: currentPrice,
+            newPrice: newPrice,
+        });
+    } catch (error) {
+        console.error("Error increasing work price:", error);
         return res.status(500).json({
             success: false,
             message: "Internal Server Error",

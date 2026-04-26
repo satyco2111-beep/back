@@ -784,21 +784,59 @@ export const updateProvider = async (req, res) => {
  * @route   GET /api/providers/live?ssrvcid=&sctyid=&sloctyid=
  * @access  Public
  */
+// export const getLiveProviders = async (req, res) => {
+//     try {
+//         const { ssrvcid, sctyid, sloctyid } = req.query;
+//         const query = { islive: true };
+
+//         if (ssrvcid) query.ssrvcid = ssrvcid;
+//         if (sctyid) query.sctyid = sctyid;
+//         if (sloctyid) query.sloctyid = sloctyid;
+
+//         const providers = await Sprovider.find(query, "-password -accesstoken -sessionAccesstoken -emailVerifyAccesstoken");
+//         const count = providers.length;
+
+//         return res.status(200).json({
+//             success: true,
+//             count,
+//             providers,
+//         });
+//     } catch (error) {
+//         console.error("Error fetching live providers:", error);
+//         return res.status(500).json({
+//             success: false,
+//             message: "Internal Server Error",
+//             error: error.message,
+//         });
+//     }
+// };
 export const getLiveProviders = async (req, res) => {
     try {
-        const { ssrvcid, sctyid, sloctyid } = req.query;
+        const { ssrvcid, sctyid, sloctyid, page = 1, limit = 9 } = req.query;
         const query = { islive: true };
 
         if (ssrvcid) query.ssrvcid = ssrvcid;
         if (sctyid) query.sctyid = sctyid;
         if (sloctyid) query.sloctyid = sloctyid;
 
-        const providers = await Sprovider.find(query, "-password -accesstoken -sessionAccesstoken -emailVerifyAccesstoken");
-        const count = providers.length;
+        // Calculate pagination variables
+        const skip = (parseInt(page) - 1) * parseInt(limit);
+
+        // Fetch providers and total count for pagination UI
+        const [providers, totalCount] = await Promise.all([
+            Sprovider.find(query, "-password -accesstoken -sessionAccesstoken -emailVerifyAccesstoken")
+                .sort({ createdAt: -1 })
+                .skip(skip)
+                .limit(parseInt(limit)),
+            Sprovider.countDocuments(query)
+        ]);
 
         return res.status(200).json({
             success: true,
-            count,
+            count: providers.length,
+            totalCount, // Total matching records
+            totalPages: Math.ceil(totalCount / limit),
+            currentPage: parseInt(page),
             providers,
         });
     } catch (error) {

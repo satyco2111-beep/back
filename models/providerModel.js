@@ -59,6 +59,10 @@ const providerSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    razorpayCustomerId: {
+      type: String,
+      default: null,
+    },
   },
   { timestamps: true }
 );
