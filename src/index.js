@@ -30,7 +30,8 @@ app.use(
             "https://back-nwex.onrender.com",
             "https://afront.onrender.com",
             "https://do-some-thing.vercel.app",
-            "https://back-phi-taupe.vercel.app"
+            "https://back-phi-taupe.vercel.app",
+            "https://do-some.vercel.app"
         ],
         credentials: true,
     })
