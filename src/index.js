@@ -31,7 +31,8 @@ app.use(
             "https://afront.onrender.com",
             "https://do-some-thing.vercel.app",
             "https://back-phi-taupe.vercel.app",
-            "https://do-some.vercel.app"
+            "https://do-some.vercel.app",
+            "https://www.dosomething.world"
         ],
         credentials: true,
     })
