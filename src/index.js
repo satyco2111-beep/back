@@ -2,6 +2,7 @@
 import express from "express";
 import dotenv from "dotenv";
 import cors from "cors";
+import crypto from "crypto";
 
 // import all file and variables ----- 
 import RouterMain from "../routes/route.js"
@@ -43,6 +44,38 @@ app.use(
 app.use("/test", (req, res) => {
     res.json({ sms: "This app is runnunig" })
 })
+
+
+const WEBHOOK_SECRET = process.env.RAZORPAY_WEBHOOK_SECRET;
+
+
+app.post("/webhook/razorpay", (req, res) => {
+  const signature = req.headers["x-razorpay-signature"];
+
+  const expectedSignature = crypto
+    .createHmac("sha256", WEBHOOK_SECRET)
+    .update(req.body)
+    .digest("hex");
+
+  if (signature === expectedSignature) {
+    const event = JSON.parse(req.body.toString());
+
+    console.log("Webhook verified:", event.event);
+
+    if (event.event === "payment.captured") {
+      // handle success
+    }
+
+    if (event.event === "payment.failed") {
+      // handle failure
+    }
+
+    res.status(200).send("OK");
+  } else {
+    res.status(400).send("Invalid signature");
+  }
+});
+
 app.use('/api', RouterMain);
 
 
