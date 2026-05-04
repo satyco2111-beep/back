@@ -74,6 +74,11 @@ app.post("/webhook/razorpay", (req, res) => {
 
     if (event.event === "payment.failed") {
       // handle failure
+      console.log("Payment failed event received:", {
+        orderId: event.payload.payment.entity.order_id,
+        paymentId: event.payload.payment.entity.id,
+        amount: event.payload.payment.entity.amount,
+      });
     }
 
     res.status(200).send("OK");
