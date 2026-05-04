@@ -103,7 +103,8 @@ app.post("/webhook/razorpay", express.raw({ type: "application/json" }), async (
       return res.status(400).send("Invalid signature");
     }
 
-    const body = JSON.parse(req.body.toString());
+    // const body = JSON.parse(req.body.toString());
+    const body = req.body;
     console.log("Webhook event:", body.event);
 
     const CREDIT_BONUS_PERCENT = Number(process.env.CREDIT_BONUS_PERCENT || 0.05);
