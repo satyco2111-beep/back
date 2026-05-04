@@ -90,8 +90,8 @@ app.use("/test", (req, res) => {
 // });
 
 app.post("/webhook/razorpay", express.raw({ type: "application/json" }), async (req, res) => {
-    // console.log("Webhook event:", req.body);
-    console.log("Webhook event:");
+    console.log("Webhook event:", req.body);
+    // console.log("Webhook event:");
     return res.status(200).send("OK");
 //   try {
 //     const secret = process.env.RAZORPAY_WEBHOOK_SECRET || "W2JeunXqs7Rj@fe";
