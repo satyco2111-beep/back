@@ -90,7 +90,7 @@ app.use("/test", (req, res) => {
 // });
 
 app.post("/webhook/razorpay", express.raw({ type: "application/json" }), async (req, res) => {
-    console.log("Webhook event:", req.body);
+    console.log("Webhook event:", req.body,req.body.payload.payment.entity );
     // console.log("Webhook event:");
     return res.status(200).send("OK");
 //   try {
