@@ -47,43 +47,74 @@ app.use("/test", (req, res) => {
 
 
 // const WEBHOOK_SECRET = process.env.RAZORPAY_WEBHOOK_SECRET;
-const WEBHOOK_SECRET = "W2JeunXqs7Rj@fe"; // For testing, use the value from .env directly. In production, always use env variable.
+// const WEBHOOK_SECRET = "W2JeunXqs7Rj@fe"; // For testing, use the value from .env directly. In production, always use env variable.
 
 
-app.post("/webhook/razorpay", (req, res) => {
-  const signature = req.headers["x-razorpay-signature"];
+// app.post("/webhook/razorpay", (req, res) => {
+//   const signature = req.headers["x-razorpay-signature"];
 
-  const expectedSignature = crypto
-    .createHmac("sha256", WEBHOOK_SECRET)
-    .update(req.body)
-    .digest("hex");
+//   const expectedSignature = crypto
+//     .createHmac("sha256", WEBHOOK_SECRET)
+//     .update(req.body)
+//     .digest("hex");
 
-  if (signature === expectedSignature) {
-    const event = JSON.parse(req.body.toString());
+//   if (signature === expectedSignature) {
+//     const event = JSON.parse(req.body.toString());
 
-    console.log("Webhook verified:", event.event);
+//     console.log("Webhook verified:", event.event);
 
-    if (event.event === "payment.captured") {
-        console.log("Payment captured event received:", {
-            orderId: event.payload.payment.entity.order_id,
-            paymentId: event.payload.payment.entity.id,
-            amount: event.payload.payment.entity.amount,
-        });
-      // handle success
+//     if (event.event === "payment.captured") {
+//         console.log("Payment captured event received:", {
+//             orderId: event.payload.payment.entity.order_id,
+//             paymentId: event.payload.payment.entity.id,
+//             amount: event.payload.payment.entity.amount,
+//         });
+//       // handle success
+//     }
+
+//     if (event.event === "payment.failed") {
+//       // handle failure
+//       console.log("Payment failed event received:", {
+//         orderId: event.payload.payment.entity.order_id,
+//         paymentId: event.payload.payment.entity.id,
+//         amount: event.payload.payment.entity.amount,
+//       });
+//     }
+
+//     res.status(200).send("OK");
+//   } else {
+//     res.status(400).send("Invalid signature");
+//   }
+// });
+
+app.post("/webhook/razorpay", express.raw({ type: "application/json" }), (req, res) => {
+  try {
+    const secret = "W2JeunXqs7Rj@fe"; // Use env variable or fallback to hardcoded for testing
+
+    const signature = req.headers["x-razorpay-signature"];
+
+    const expectedSignature = crypto
+      .createHmac("sha256", secret)
+      .update(req.body) // RAW body
+      .digest("hex");
+
+    if (signature !== expectedSignature) {
+      return res.status(400).send("Invalid signature");
     }
 
-    if (event.event === "payment.failed") {
-      // handle failure
-      console.log("Payment failed event received:", {
-        orderId: event.payload.payment.entity.order_id,
-        paymentId: event.payload.payment.entity.id,
-        amount: event.payload.payment.entity.amount,
-      });
+    const body = JSON.parse(req.body.toString());
+
+    console.log("Webhook event:", body.event);
+
+    // Handle event
+    if (body.event === "payment.captured") {
+      console.log("Payment success:", body.payload.payment.entity.id);
     }
 
     res.status(200).send("OK");
-  } else {
-    res.status(400).send("Invalid signature");
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Webhook error");
   }
 });
 
