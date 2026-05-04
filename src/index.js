@@ -46,7 +46,8 @@ app.use("/test", (req, res) => {
 })
 
 
-const WEBHOOK_SECRET = process.env.RAZORPAY_WEBHOOK_SECRET;
+// const WEBHOOK_SECRET = process.env.RAZORPAY_WEBHOOK_SECRET;
+const WEBHOOK_SECRET = "W2JeunXqs7Rj@fe"; // For testing, use the value from .env directly. In production, always use env variable.
 
 
 app.post("/webhook/razorpay", (req, res) => {
@@ -63,6 +64,11 @@ app.post("/webhook/razorpay", (req, res) => {
     console.log("Webhook verified:", event.event);
 
     if (event.event === "payment.captured") {
+        console.log("Payment captured event received:", {
+            orderId: event.payload.payment.entity.order_id,
+            paymentId: event.payload.payment.entity.id,
+            amount: event.payload.payment.entity.amount,
+        });
       // handle success
     }
 
