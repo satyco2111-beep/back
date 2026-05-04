@@ -90,105 +90,108 @@ app.use("/test", (req, res) => {
 // });
 
 app.post("/webhook/razorpay", express.raw({ type: "application/json" }), async (req, res) => {
-  try {
-    const secret = process.env.RAZORPAY_WEBHOOK_SECRET || "W2JeunXqs7Rj@fe";
-    const signature = req.headers["x-razorpay-signature"];
+    // console.log("Webhook event:", req.body);
+    console.log("Webhook event:");
+    return res.status(200).send("OK");
+//   try {
+//     const secret = process.env.RAZORPAY_WEBHOOK_SECRET || "W2JeunXqs7Rj@fe";
+//     const signature = req.headers["x-razorpay-signature"];
 
-    const expectedSignature = crypto
-      .createHmac("sha256", secret)
-      .update(req.body)
-      .digest("hex");
+//     const expectedSignature = crypto
+//       .createHmac("sha256", secret)
+//       .update(req.body)
+//       .digest("hex");
 
-    if (signature !== expectedSignature) {
-      return res.status(400).send("Invalid signature");
-    }
+//     if (signature !== expectedSignature) {
+//       return res.status(400).send("Invalid signature");
+//     }
 
-    // const body = JSON.parse(req.body.toString());
-    const body = req.body;
-    console.log("Webhook event:", body.event);
+//     // const body = JSON.parse(req.body.toString());
+//     const body = req.body;
+//     console.log("Webhook event:", body.event);
 
-    const CREDIT_BONUS_PERCENT = Number(process.env.CREDIT_BONUS_PERCENT || 0.05);
+//     const CREDIT_BONUS_PERCENT = Number(process.env.CREDIT_BONUS_PERCENT || 0.05);
 
-    if (body.event === "payment.captured") {
-      const payment = body.payload.payment.entity;
-      const orderId = payment.order_id;
-      const paymentId = payment.id;
-      const amountPaidPaise = payment.amount;
-      const amountPaidInr = Number(amountPaidPaise) / 100;
-      const notes = payment.notes || {};
-      const sprovid = notes.sprovid;
-      const purpose = notes.purpose;
+//     if (body.event === "payment.captured") {
+//       const payment = body.payload.payment.entity;
+//       const orderId = payment.order_id;
+//       const paymentId = payment.id;
+//       const amountPaidPaise = payment.amount;
+//       const amountPaidInr = Number(amountPaidPaise) / 100;
+//       const notes = payment.notes || {};
+//       const sprovid = notes.sprovid;
+//       const purpose = notes.purpose;
 
-      if (purpose !== "BUY_CREDIT" || !sprovid) {
-        console.log("Not a credit purchase or missing sprovid");
-        return res.status(200).send("OK");
-      }
+//       if (purpose !== "BUY_CREDIT" || !sprovid) {
+//         console.log("Not a credit purchase or missing sprovid");
+//         return res.status(200).send("OK");
+//       }
 
-      // Check if already processed
-      const existing = await Spayment.findOne({ razorpayPaymentId: paymentId });
-      if (existing) {
-        console.log("Payment already processed");
-        return res.status(200).send("OK");
-      }
+//       // Check if already processed
+//       const existing = await Spayment.findOne({ razorpayPaymentId: paymentId });
+//       if (existing) {
+//         console.log("Payment already processed");
+//         return res.status(200).send("OK");
+//       }
 
-      const provider = await Sprovider.findOne({ sprovid });
-      if (!provider) {
-        console.log("Provider not found");
-        return res.status(200).send("OK");
-      }
+//       const provider = await Sprovider.findOne({ sprovid });
+//       if (!provider) {
+//         console.log("Provider not found");
+//         return res.status(200).send("OK");
+//       }
 
-      const creditAdded = Number((amountPaidInr * (1 + CREDIT_BONUS_PERCENT)).toFixed(2));
-      const currentCredit = Number(provider.cradit_value) || 0;
-      const newCredit = Number((currentCredit + creditAdded).toFixed(2));
+//       const creditAdded = Number((amountPaidInr * (1 + CREDIT_BONUS_PERCENT)).toFixed(2));
+//       const currentCredit = Number(provider.cradit_value) || 0;
+//       const newCredit = Number((currentCredit + creditAdded).toFixed(2));
 
-      provider.cradit_value = String(newCredit);
-      await provider.save();
+//       provider.cradit_value = String(newCredit);
+//       await provider.save();
 
-      const spayid = `SPAY-${Date.now()}-${Math.floor(1000 + Math.random() * 9000)}`;
-      await Spayment.create({
-        spayid,
-        providerId: sprovid,
-        providerEmail: provider.email,
-        gateway: "RAZORPAY",
-        razorpayOrderId: orderId,
-        razorpayPaymentId: paymentId,
-        amountPaid: amountPaidInr,
-        creditBonusPercent: CREDIT_BONUS_PERCENT,
-        creditAdded,
-        status: "SUCCESS",
-      });
+//       const spayid = `SPAY-${Date.now()}-${Math.floor(1000 + Math.random() * 9000)}`;
+//       await Spayment.create({
+//         spayid,
+//         providerId: sprovid,
+//         providerEmail: provider.email,
+//         gateway: "RAZORPAY",
+//         razorpayOrderId: orderId,
+//         razorpayPaymentId: paymentId,
+//         amountPaid: amountPaidInr,
+//         creditBonusPercent: CREDIT_BONUS_PERCENT,
+//         creditAdded,
+//         status: "SUCCESS",
+//       });
 
-      console.log("Credit added:", { sprovid, creditAdded, newCredit });
-    }
+//       console.log("Credit added:", { sprovid, creditAdded, newCredit });
+//     }
 
-    if (body.event === "payment.failed") {
-      const payment = body.payload.payment.entity;
-      const orderId = payment.order_id;
-      const paymentId = payment.id;
-      const amountPaidInr = Number(payment.amount) / 100;
-      const notes = payment.notes || {};
-      const sprovid = notes.sprovid;
+//     if (body.event === "payment.failed") {
+//       const payment = body.payload.payment.entity;
+//       const orderId = payment.order_id;
+//       const paymentId = payment.id;
+//       const amountPaidInr = Number(payment.amount) / 100;
+//       const notes = payment.notes || {};
+//       const sprovid = notes.sprovid;
 
-      // Record failed payment
-      const spayid = `SPAY-${Date.now()}-${Math.floor(1000 + Math.random() * 9000)}`;
-      await Spayment.create({
-        spayid,
-        providerId: sprovid || null,
-        gateway: "RAZORPAY",
-        razorpayOrderId: orderId,
-        razorpayPaymentId: paymentId,
-        amountPaid: amountPaidInr,
-        status: "FAILED",
-      });
+//       // Record failed payment
+//       const spayid = `SPAY-${Date.now()}-${Math.floor(1000 + Math.random() * 9000)}`;
+//       await Spayment.create({
+//         spayid,
+//         providerId: sprovid || null,
+//         gateway: "RAZORPAY",
+//         razorpayOrderId: orderId,
+//         razorpayPaymentId: paymentId,
+//         amountPaid: amountPaidInr,
+//         status: "FAILED",
+//       });
 
-      console.log("Payment failed:", { orderId, paymentId });
-    }
+//       console.log("Payment failed:", { orderId, paymentId });
+//     }
 
-    res.status(200).send("OK");
-  } catch (err) {
-    console.error("Webhook error:", err);
-    res.status(500).send("Webhook error");
-  }
+//     res.status(200).send("OK");
+//   } catch (err) {
+//     console.error("Webhook error:", err);
+//     res.status(500).send("Webhook error");
+//   }
 });
 
 app.use('/api', RouterMain);
