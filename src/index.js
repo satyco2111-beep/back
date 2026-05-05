@@ -100,7 +100,7 @@ app.post("/webhook/razorpay", express.raw({ type: "application/json" }), async (
 
         const amountPaidInr = Number(req.body.payload.payment.entity.amount) / 100;
 
-    const creditAdded = Number((amountPaidInr * (1 + CREDIT_BONUS_PERCENT)).toFixed(2));
+    const creditAdded = Number((amountPaidInr ).toFixed(2));
     const currentCredit = Number(provider.cradit_value) || 0;
     const newCredit = Number((currentCredit + creditAdded).toFixed(2));
 
