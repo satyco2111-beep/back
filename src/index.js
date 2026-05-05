@@ -92,6 +92,21 @@ app.use("/test", (req, res) => {
 app.post("/webhook/razorpay", express.raw({ type: "application/json" }), async (req, res) => {
     console.log("Webhook event:", req.body,req.body.payload.payment.entity );
     // console.log("Webhook event:");
+    
+
+   const sprovid = req.body.payload.payment.entity.notes?.provider_id;
+
+    const provider = await Sprovider.findOne({ sprovid });
+
+        const amountPaidInr = Number(req.body.payload.payment.entity.amount) / 100;
+
+    const creditAdded = Number((amountPaidInr * (1 + CREDIT_BONUS_PERCENT)).toFixed(2));
+    const currentCredit = Number(provider.cradit_value) || 0;
+    const newCredit = Number((currentCredit + creditAdded).toFixed(2));
+
+    provider.cradit_value = String(newCredit);
+    await provider.save();
+
     return res.status(200).send("OK");
 //   try {
 //     const secret = process.env.RAZORPAY_WEBHOOK_SECRET || "W2JeunXqs7Rj@fe";
